@@ -5,18 +5,18 @@ from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship,sessionmaker
+from sqlalchemy.orm import relationship,Session
 from datetime import datetime
 
 from sqlalchemy import create_engine
-DATABASE_URL='postgresql://postgres:Nazo@localhost:5432/flaskapi'
+DATABASE_URL='postgresql://postgres:kimysada6@localhost:5432/flask_api'
 
 
 engine = create_engine(
     DATABASE_URL
 )
 
-SessionLocal = sessionmaker(
+SessionLocal = Session(
     autocommit=False,
     autoflush=False,
     bind=engine
@@ -25,6 +25,14 @@ SessionLocal = sessionmaker(
 class Base(DeclarativeBase):
      pass
 
+class User(Base):
+    __tablename__ = "fastapiusers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email:Mapped[str] = mapped_column(String(100),unique=True,nullable=False)
+    username:Mapped[Optional[str]]= mapped_column(String(100),nullable=True)
+    password:Mapped[str]= mapped_column(String(100),nullable=False)
+    
 class Product(Base):
     __tablename__ = "products"
 
@@ -32,7 +40,6 @@ class Product(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     buying_price: Mapped[float] = mapped_column(nullable=False)
     selling_price: Mapped[float] = mapped_column(nullable=False)
-
     sales: Mapped[List["Sale"]] = relationship(back_populates="product")
 
 
@@ -43,5 +50,4 @@ class Sale(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     quantity: Mapped[int] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-
     product: Mapped["Product"] = relationship(back_populates="sales")
