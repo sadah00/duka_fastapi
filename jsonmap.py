@@ -3,7 +3,7 @@ from datetime import datetime
 
 class UserPostRegister(BaseModel):
     email: str
-    username: str 
+    full_name: str 
     password: str
 
 class UserPostLogin(BaseModel):

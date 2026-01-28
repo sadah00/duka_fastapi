@@ -5,7 +5,7 @@ from models import Base,engine,SessionLocal
 from sqlalchemy import select
 from jsonmap import ProductGetMap, ProductPostMap, SaleGetMap, SalePostMap, UserPostRegister, UserPostLogin
 from models import Product,Sale,User
-from jwt import create_access_token, authenticate_user,get_password_hash,verify_password
+from myjwt import create_access_token, authenticate_user,get_password_hash,verify_password,get_current_user
 from datetime import timedelta
 from jsonmap import Token
 from fastapi.security import (
@@ -43,7 +43,7 @@ def register_user(user: UserPostRegister):
     # Create User model object
     model_obj = User(
         email=user.email,
-        username=user.username,
+        full_name=user.full_name,
         password=hashed_password
     )
 
@@ -66,10 +66,8 @@ def register_user(user: UserPostRegister):
     return Token(access_token=access_token, token_type="bearer")
 
 @app.post("/login", response_model=Token)
-def login_user(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-):
-    user = authenticate_user(form_data.username, form_data.password)
+def login_user(user_json:UserPostLogin):
+    user = authenticate_user(user_json.email, user_json.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,8 +77,8 @@ def login_user(
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
         data={
-            "sub": user.email,
-            "scope": " ".join(form_data.scopes),
+            "sub": user_json.email
+            # "scope": " ".join(user_json.scopes),
         },
         expires_delta=access_token_expires,
     )
@@ -89,7 +87,10 @@ def login_user(
 
 
 @app.get("/products", response_model=List[ProductGetMap])
-def get_products():
+def get_products(
+    current_user: Annotated[User, Depends(get_current_user)]
+):
+    print(f"Current user---------------------: {current_user.email}")
     products=select(Product)
     return SessionLocal.scalars(products)
 

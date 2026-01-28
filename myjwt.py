@@ -85,15 +85,15 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
+        email = payload.get("sub")
+        if email is None:
             raise credentials_exception
         scope: str = payload.get("scope", "")
         token_scopes = scope.split(" ")
-        token_data = TokenData(scopes=token_scopes, username=username)
+        token_data = TokenData(scopes=token_scopes, email=email)
     except Exception:
         raise credentials_exception
-    user = get_user(token_data.username)
+    user = get_user(token_data.email)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
