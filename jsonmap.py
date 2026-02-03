@@ -35,5 +35,22 @@ class TokenData(BaseModel):
     email: str | None = None
     scopes: list[str] = []
 
+class PurchasePostMap(BaseModel):
+    product_id: int
+    stock_quantity: int
+    created_at: datetime
 
+class PurchaseGetMap(PurchasePostMap):
+    id: int
+
+class SalesPerProduct(BaseModel):
+    product_id: int
+    product_name: str
+    total_quantity_sold: int
+    total_sales_amount: float
+
+class StockPerProduct(BaseModel):
+    product_id: int
+    product_name: str
+    remaining_stock: int
 

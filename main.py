@@ -2,10 +2,10 @@ from typing import Union, List, Annotated
 from fastapi import FastAPI, Depends,HTTPException, status
 from sqlalchemy.orm import Session,selectinload
 from models import Base,engine,SessionLocal
-from sqlalchemy import select
-from jsonmap import ProductGetMap, ProductPostMap, SaleGetMap, SalePostMap, UserPostRegister, UserPostLogin
-from models import Product,Sale,User
-from myjwt import create_access_token, authenticate_user,get_password_hash,verify_password,security
+from sqlalchemy import select,func
+from jsonmap import ProductGetMap, ProductPostMap, SaleGetMap, SalePostMap, UserPostRegister, UserPostLogin ,PurchaseGetMap, PurchasePostMap,SalesPerProduct,StockPerProduct
+from models import Product,Sale,User,Purchase
+from myjwt import create_access_token, authenticate_user,get_password_hash,verify_password,security,get_current_user
 from datetime import timedelta
 from jsonmap import Token
 from fastapi.security import (
@@ -146,3 +146,96 @@ def create_sales(
     SessionLocal.add(model_obj)
     SessionLocal.commit()
     return model_obj
+
+@app.post("/purchases", response_model=PurchaseGetMap)
+def create_purchase(
+    current_user: Annotated[User, Depends(security)],
+    json_purchase_obj:PurchasePostMap
+    ):
+    model_obj=Purchase(
+        product_id=json_purchase_obj.product_id,
+        stock_quantity=json_purchase_obj.stock_quantity,
+        created_at=json_purchase_obj.created_at
+    )
+    SessionLocal.add(model_obj)
+    SessionLocal.commit()
+    return model_obj
+
+@app.get("/purchases", response_model=List[PurchaseGetMap])
+def get_purchases(
+    current_user: Annotated[User, Depends(security)]
+):
+    print(f"Current user---------------------: {current_user}")
+    purchases=select(Purchase)
+    return SessionLocal.scalars(purchases)
+
+
+# 🔹 Sales per product
+@app.get("/dashboard/sales-per-product", response_model=list[SalesPerProduct])
+def sales_per_product(
+    current_user: Annotated[User, Depends(security)]
+):
+    sales_data = (
+        SessionLocal.query(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            func.sum(Sale.quantity).label("total_quantity_sold"),
+            func.sum(Sale.quantity * Product.selling_price).label("total_sales_amount")
+        )
+        .join(Sale, Product.id == Sale.product_id)
+        .group_by(Product.id, Product.name)
+        .all()
+    )
+
+    result = [
+        SalesPerProduct(
+            product_id=row.product_id,
+            product_name=row.product_name,
+            total_quantity_sold=row.total_quantity_sold,
+            total_sales_amount=row.total_sales_amount
+        )
+        for row in sales_data
+    ]
+
+    return result
+    
+
+@app.get("/dashboard/remaining-stock-per-product",response_model=List[StockPerProduct])
+def get_stock_per_product(
+     current_user: Annotated[User, Depends(get_current_user)]
+):
+    sales_subquery = (
+        select(
+            Sale.product_id,
+            func.coalesce(func.sum(Sale.quantity), 0).label("total_sold")
+        ).group_by(Sale.product_id)
+        .subquery()
+    )
+
+    purchases_subquery = (
+        select(
+            Purchase.product_id,
+            func.coalesce(func.sum(Purchase.stock_quantity), 0).label("total_purchased")
+        ).group_by(Purchase.product_id)
+        .subquery()
+    )
+
+    stock_data = SessionLocal.execute(
+        select(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            (func.coalesce(purchases_subquery.c.total_purchased, 0) - func.coalesce(sales_subquery.c.total_sold, 0)).label("remaining_stock")
+        ).outerjoin(sales_subquery, Product.id == sales_subquery.c.product_id
+        ).outerjoin(purchases_subquery, Product.id == purchases_subquery.c.product_id)
+    ).all()
+
+    result = [
+        StockPerProduct(
+            product_id=row.product_id,
+            product_name=row.product_name,
+            remaining_stock=row.remaining_stock
+        )
+        for row in stock_data
+    ]
+
+    return result

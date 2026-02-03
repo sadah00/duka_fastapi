@@ -125,6 +125,28 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 #     return user
 
+# def get_current_user(
+#     credentials: HTTPAuthorizationCredentials = Depends(security)
+# ):
+#     token = credentials.credentials
+
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#     except jwt.PyJWTError:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid token"
+#         )
+
+#     email = payload.get("email")
+#     if not email:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Email not found in token"
+#         )
+
+#     return email
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -138,15 +160,14 @@ def get_current_user(
             detail="Invalid token"
         )
 
-    email = payload.get("email")
+    email = payload.get("email") or payload.get("sub")
     if not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email not found in token"
+            detail="Invalid authentication token"
         )
 
     return email
-
 
 async def get_current_active_user(
     current_user: Annotated[User, Security(get_current_user, scopes=["me"])],

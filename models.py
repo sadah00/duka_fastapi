@@ -51,3 +51,11 @@ class Sale(Base):
     quantity: Mapped[int] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     product: Mapped["Product"] = relationship(back_populates="sales")
+
+class Purchase(Base):
+    __tablename__ = "purchases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    stock_quantity: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
