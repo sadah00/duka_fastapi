@@ -54,3 +54,19 @@ class StockPerProduct(BaseModel):
     product_name: str
     remaining_stock: int
 
+class ProfitPerProduct(BaseModel):
+    product_id: int
+    product_name: str
+    total_profit: float
+
+class ProfitPerDay(BaseModel):
+    date: datetime
+    total_profit: float
+
+class ProfitPerProductPerDay(BaseModel):
+    date: datetime
+    product_id: int
+    product_name: str
+    total_profit: float
+
+

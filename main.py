@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends,HTTPException, status
 from sqlalchemy.orm import Session,selectinload
 from models import Base,engine,SessionLocal
 from sqlalchemy import select,func
-from jsonmap import ProductGetMap, ProductPostMap, SaleGetMap, SalePostMap, UserPostRegister, UserPostLogin ,PurchaseGetMap, PurchasePostMap,SalesPerProduct,StockPerProduct
+from jsonmap import ProductGetMap, ProductPostMap, SaleGetMap, SalePostMap, UserPostRegister, UserPostLogin ,PurchaseGetMap, PurchasePostMap,SalesPerProduct,StockPerProduct,ProfitPerProduct,ProfitPerDay,ProfitPerProductPerDay
 from models import Product,Sale,User,Purchase
 from myjwt import create_access_token, authenticate_user,get_password_hash,verify_password,security,get_current_user
 from datetime import timedelta
@@ -236,6 +236,80 @@ def get_stock_per_product(
             remaining_stock=row.remaining_stock
         )
         for row in stock_data
+    ]
+
+    return result
+
+@app.get("/dashboard/profit-per-product", response_model=list[ProfitPerProduct])
+def profit_per_product(
+    current_user: Annotated[User, Depends(security)]
+):
+    profit_data = (
+        SessionLocal.query(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            func.sum(Sale.quantity * (Product.selling_price - Product.buying_price)).label("total_profit")
+        )
+        .join(Sale, Product.id == Sale.product_id)
+        .group_by(Product.id, Product.name)
+        .all()
+    )
+
+    result = [
+        ProfitPerProduct(
+            product_id=row.product_id,
+            product_name=row.product_name,
+            total_profit=row.total_profit
+        )
+        for row in profit_data
+    ]
+
+    return result
+
+@app.get("/dashboard/profit-per-day",response_model=List[ProfitPerDay])
+def get_profit_per_day(
+     current_user: Annotated[User, Depends(get_current_user)]
+):
+    profit_data = SessionLocal.execute(
+        select(
+            func.date(Sale.created_at).label("date"),
+            func.sum(Sale.quantity * (Product.selling_price - Product.buying_price)).label("total_profit")
+        ).join(Product, Sale.product_id == Product.id
+        ).group_by(func.date(Sale.created_at))
+    ).all()
+
+    result = [
+        ProfitPerDay(
+            date=row.date,
+            total_profit=row.total_profit
+        )
+        for row in profit_data
+    ]
+
+    return result
+
+@app.get("/dashboard/profit-per-product-per-day",response_model=List[ProfitPerProductPerDay])
+def get_profit_per_product_per_day(
+     current_user: Annotated[User, Depends(get_current_user)]
+):
+    profit_data = SessionLocal.execute(
+        select(
+            func.date(Sale.created_at).label("date"),
+            Sale.product_id,
+            Product.name.label("product_name"),
+            func.sum(Sale.quantity * (Product.selling_price - Product.buying_price)).label("total_profit")
+        ).join(Product, Sale.product_id == Product.id
+        ).group_by(func.date(Sale.created_at), Sale.product_id, Product.name)
+    ).all()
+
+    result = [
+        ProfitPerProductPerDay(
+            date=row.date,
+            product_id=row.product_id,
+            product_name=row.product_name,
+            total_profit=row.total_profit
+        )
+        for row in profit_data
     ]
 
     return result
