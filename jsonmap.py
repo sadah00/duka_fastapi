@@ -44,10 +44,8 @@ class PurchaseGetMap(PurchasePostMap):
     id: int
 
 class SalesPerProduct(BaseModel):
-    product_id: int
-    product_name: str
-    total_quantity_sold: int
-    total_sales_amount: float
+    data: list[int]
+    labels: list[str]
 
 class StockPerProduct(BaseModel):
     product_id: int

@@ -13,11 +13,22 @@ from fastapi.security import (
     SecurityScopes,
 )
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 bearer_scheme = HTTPBearer()
 
 app = FastAPI()
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create tables on startup
 @app.on_event("startup")
@@ -171,7 +182,7 @@ def get_purchases(
 
 
 # 🔹 Sales per product
-@app.get("/dashboard/sales-per-product", response_model=list[SalesPerProduct])
+@app.get("/dashboard/sales-per-product", response_model=SalesPerProduct)
 def sales_per_product(
     current_user: Annotated[User, Depends(security)]
 ):
@@ -187,17 +198,18 @@ def sales_per_product(
         .all()
     )
 
-    result = [
-        SalesPerProduct(
-            product_id=row.product_id,
-            product_name=row.product_name,
-            total_quantity_sold=row.total_quantity_sold,
-            total_sales_amount=row.total_sales_amount
-        )
-        for row in sales_data
-    ]
+    data = [r.total_quantity_sold for r in sales_data]
+    labels = [r.product_name for r in sales_data]
 
-    return result
+    print("-----------data",data)
+    print("-----------labels",labels)
+
+    return SalesPerProduct(
+        data=data,
+        labels=labels
+    )
+
+   
     
 
 @app.get("/dashboard/remaining-stock-per-product",response_model=List[StockPerProduct])
