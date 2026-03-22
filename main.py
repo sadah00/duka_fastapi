@@ -115,9 +115,9 @@ def login_user(user_json:UserPostLogin):
 
 @app.get("/products", response_model=List[ProductGetMap])
 def get_products(
-    current_user: Annotated[User, Depends(security)]
+    # current_user: Annotated[User, Depends(security)]
 ):
-    print(f"Current user---------------------: {current_user}")
+    # print(f"Current user---------------------: {current_user}")
     products=select(Product)
     return SessionLocal.scalars(products)
 
@@ -138,9 +138,9 @@ def create_product(
 
 @app.get("/sales",response_model=List[SaleGetMap])
 def get_sales(
-    current_user: Annotated[User, Depends(security)]
-    ):
-    print(f"Current user---------------------: {current_user}")
+    # current_user: Annotated[User, Depends(security)]
+     ):
+    # print(f"Current user---------------------: {current_user}")
     
     sales=select(Sale).join(Sale.product)
     return SessionLocal.scalars(sales)
@@ -174,9 +174,9 @@ def create_purchase(
 
 @app.get("/purchases", response_model=List[PurchaseGetMap])
 def get_purchases(
-    current_user: Annotated[User, Depends(security)]
+    # current_user: Annotated[User, Depends(security)]
 ):
-    print(f"Current user---------------------: {current_user}")
+    # print(f"Current user---------------------: {current_user}")
     purchases=select(Purchase)
     return SessionLocal.scalars(purchases)
 
