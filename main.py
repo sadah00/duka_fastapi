@@ -20,15 +20,23 @@ bearer_scheme = HTTPBearer()
 
 app = FastAPI()
 
-origins = ["*"]
-
+# origins = ["http://localhost:5173","http://127.0.0.1:5173"]  # Update with your frontend URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Create tables on startup
 @app.on_event("startup")
@@ -121,9 +129,13 @@ def get_products(
     products=select(Product)
     return SessionLocal.scalars(products)
 
+@app.get("/test")
+def test():
+    return {"message": "Test endpoint"}
+
 @app.post("/products", response_model=ProductGetMap)
 def create_product(
-    current_user: Annotated[User, Depends(security)],
+    # current_user: Annotated[User, Depends(security)],
     json_product_obj:ProductPostMap
     ):
 
